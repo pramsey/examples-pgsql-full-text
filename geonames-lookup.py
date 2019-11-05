@@ -20,16 +20,6 @@ PORT = 8081
 
 
 ########################################################################
-# alter table geonames add column ts tsvector;
-# update geonames set ts = to_tsvector('english', name);
-# create index geonames_ts_x on geonames using gin (ts);
-# select count(*) from geonames;
-# create table geonames_stats as 
-#    select count(*) as ndoc, 
-#      unnest(regexp_split_to_array(lower(trim(name)), E'[^a-zA-Z]')) as word 
-#    from geonames group by 2;
-# create index geonames_stats_word_x on geonames_stats (word text_pattern_ops)
-########################################################################
 
 class GeonamesRequestHandler(http.server.BaseHTTPRequestHandler):
 
