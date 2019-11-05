@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>jQuery UI Autocomplete - Default functionality</title>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <link rel="stylesheet" href="https://jqueryui.com/resources/demos/style.css">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+   integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+   crossorigin=""/>
+
+  <!-- Make sure you put this AFTER Leaflet's CSS -->
+  <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+   integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+   crossorigin=""></script>
+
+
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  
+  <script>
+
+  var myLayer;
+  var myMap;
+
+  $( function() {
+  
+    $( "#tags" ).autocomplete({
+      source: "http://localhost:8080/address-lookup.py",
+      minLength: 3,
+      // Zoom to selected parcel
+      select: function( event, ui ) {
+        myLayer.clearLayers();
+        myLayer.addData(ui.item.geom);
+        myMap.fitBounds(myLayer.getBounds());
+      },
+
+      // Zoom to all listed parcels
+      response: function( event, ui ) {
+        myLayer.clearLayers();
+        for (var i=0, size=ui.content.length; i<size; i++) {
+          myLayer.addData(ui.content[i].geom);
+        }
+        if (ui.content.length > 0) {
+          myMap.fitBounds(myLayer.getBounds());
+        }
+      }
+    });
+
+  } );
+  </script>
+  <style>
+    #mapid { height: 512px; width: 100%; z-index: 1; }
+    #tags { width: 512px; margin: 5px; }
+  </style>
+</head>
+
+<body>
+ 
+<div class="ui-widget">
+  <label for="tags">Tags: </label>
+  <input id="tags">
+</div>
+
+<div id="mapid"></div>
+
+<script>
+
+  var myMap = L.map('mapid').setView([37.38,-122.02], 13);
+  L.tileLayer('https://d.basemaps.cartocdn.com/rastertiles/{id}/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    id: 'voyager'
+  }).addTo(myMap);
+
+  myLayer = L.geoJSON().addTo(myMap);
+
+</script>
+
+</body>
+</html>
