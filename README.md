@@ -56,12 +56,18 @@ Make the autocomplete lookup table:
 
 # Address Data Setup
 
+Download the shape file
+
     wget --output-file=santa_cruz_parcels.zip "https://data.sccgov.org/api/geospatial/6p99-rtwk?method=export&format=Shapefile"
+
+Create a new database and load shape file
 
     createdb santa_cruz
     psql -d santa_cruz -c 'create extension postgis'
     unzip santa_cruz_parcels.zip
     shp2pgsql -s 4329 -D geo_export_de713ab2-5ed6-44a6-b88b-9b91ea232f66 parcels | psql -d santa_cruz
+
+Fix the column names screwed up by the shape file
 
     ALTER TABLE parcels RENAME COLUMN situs_city     to city;
     ALTER TABLE parcels RENAME COLUMN situs_hous     to house;
@@ -79,8 +85,12 @@ Make the autocomplete lookup table:
     ALTER TABLE parcels DROP COLUMN reserved2;
     ALTER TABLE parcels DROP COLUMN reserved3;
 
+Install the addressing dictionary for better full-text search on address strings
+
     -- https://github.com/pramsey/pgsql-addressing-dictionary
     CREATE EXTENSION addressing_dictionary; 
+
+Create a full-text address string, then parse it into the `ts` column
 
     ALTER TABLE parcels ADD COLUMN ts tsvector;
     UPDATE parcels SET ts = 
