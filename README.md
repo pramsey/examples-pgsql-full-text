@@ -44,6 +44,15 @@ Add geometry and text search columns, populate and index them
     create index geonames_ts_x on geonames using gin (ts);
     analyze geonames;
 
+Make the autocomplete lookup table:
+
+    create table geonames_stats as 
+        select count(*) as ndoc, 
+        unnest(regexp_split_to_array(lower(trim(name)), E'[^a-zA-Z]')) as word 
+        from geonames group by 2;
+    create index geonames_stats_word_x on geonames_stats (word text_pattern_ops);
+    analyze geonames_stats;
+
 
 # Address Data Setup
 
