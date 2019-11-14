@@ -81,7 +81,7 @@ class AutocompleteRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_error(400, "invalid query: %s" % (str(query_components)))
             return
 
-        # self.log_message("term: %s" % (q))        
+        # Turn CGI query into SQL
         sql = self.generateSql(q)
         self.log_message("sql: %s" % (sql))
 

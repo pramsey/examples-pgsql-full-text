@@ -102,8 +102,8 @@ class GeonamesRequestHandler(http.server.BaseHTTPRequestHandler):
 
         self.log_message("sql: %s" % (sql))
 
+        # Turn CGI query into SQL
         result = self.executeSql(sql)
-        # self.log_message("result: %s" % (result))
         if not result:
             result = '[]'
         
