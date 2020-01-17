@@ -23,7 +23,6 @@
   <script>
 
   var myLayer;
-  var myLayerPoints = [];
 
   $( function() {
   
@@ -40,9 +39,8 @@
         var q = encodeURI(ui.item.value);
         $.get(url+q, function(data, status)
           {
-            myLayerPoints.length = 0;
-            myLayerPoints = data.map(p => [p['lat'], p['lon']]);
-            myLayer.setLatLngs(myLayerPoints);
+            myLayer.setLatLngs(data.map(p => [p['lat'], p['lon']]));
+            $("#fcount").html(data.length);
           });
       }
     });
@@ -50,16 +48,38 @@
   } );
   </script>
   <style>
-    #mapid { height: 512px; width: 100%; z-index: 1; }
-    #tags { width: 512px; margin: 5px;}
+    body {
+        padding: 0;
+        margin: 0;
+    }
+    html, body, #mapid {
+        height: 100%;
+        width: 100%;
+    }
+    #mapid { z-index: 1 }
+    #query {
+        background: #ffffff99;
+        padding: 0.5em 1.5em;
+        position: absolute;
+        left: 4em;
+        top: 1em;
+        z-index: 2;
+    }
+    #tags {
+      font-size: 105%;
+      padding-left: 0.2em;
+    }
+    #query h2 { margin-top: 0.4em; margin-bottom: 0.4em; }
   }
   </style>
 </head>
 <body>
  
-<div class="ui-widget">
-  <label for="tags">Name: </label>
-  <input id="tags" onsubmit="console.log('this')">
+<div id="query">
+  <h2>Geonames Heat Map</h2>
+  <p><label for="tags">Name: </label>
+  <input id="tags" onsubmit="console.log('this')"></p>
+  <p>Feature count: <span id="fcount"></span></p>
 </div>
 
 <div id="mapid"></div>
@@ -82,7 +102,7 @@
     gradient: {0.4: 'blue', 0.65: 'lime', 1: 'red'}
   };
 
-  myLayer = L.heatLayer(myLayerPoints, myLayerOptions).addTo(myMap);
+  myLayer = L.heatLayer([], myLayerOptions).addTo(myMap);
 
 </script>
 
