@@ -16,42 +16,93 @@ Download the data from GeoNames
     wget http://download.geonames.org/export/dump/US.zip
 
 Prepare the database with PostGIS
-
-    CREATE DATABASE geonames;
-    CREATE EXTENSION postgis;
-
+```sql
+CREATE DATABASE geonames;
+CREATE EXTENSION postgis;
+```
 Load the data file in
 
-    CREATE TABLE geonames ( id integer, name text, lat float8, lon float8, type text, state text );
-    \copy geonames (id, name, lat, lon, type, state)
-        FROM PROGRAM 'unzip -p US.zip US.txt | cut -f1,2,5,6,8,10' 
-        WITH ( 
-            format csv,
-            delimiter E'\t',
-            header false,
-            encoding 'latin1'
-            );
+```sql
+CREATE TABLE geonames ( id integer, name text, lat float8, lon float8, type text, state text );
+
+\copy geonames (id, name, lat, lon, type, state) FROM PROGRAM 'unzip -p US.zip US.txt | cut -f1,2,5,6,8,10' WITH ( format csv, delimiter E'\t', header false, encoding 'latin1' );
+```
 
 Add geometry and text search columns, populate and index them
 
-    ALTER TABLE geonames ADD COLUMN geom geometry(point, 4326);
-    ALTER TABLE geonames ADD COLUMN ts tsvector;
-    UPDATE geonames SET 
-        geom = ST_SetSRID(ST_MakePoint(lon, lat), 4326),
-        ts = to_tsvector('english', name);
-    VACUUM FULL geonames;
-    CREATE INDEX geonames_geom_x on geonames using gist (geom);
-    CREATE INDEX geonames_ts_x on geonames using gin (ts);
-    ANALYZE geonames;
+```sql
+ALTER TABLE geonames ADD COLUMN geom geometry(point, 4326);
+ALTER TABLE geonames ADD COLUMN ts tsvector;
+UPDATE geonames SET 
+    geom = ST_SetSRID(ST_MakePoint(lon, lat), 4326),
+    ts = to_tsvector('english', name);
+VACUUM FULL geonames;
+CREATE INDEX geonames_geom_x on geonames using gist (geom);
+CREATE INDEX geonames_ts_x on geonames using gin (ts);
+ANALYZE geonames;
+```
 
 Make the autocomplete lookup table:
 
-    CREATE TABLE geonames_stats as 
-        select count(*) as ndoc, 
-        unnest(regexp_split_to_array(lower(trim(name)), E'[^a-zA-Z]')) as word 
-        from geonames group by 2;
-    CREATE INDEX geonames_stats_word_x on geonames_stats (word text_pattern_ops);
-    ANALYZE geonames_stats;
+```sql
+CREATE TABLE geonames_stats as 
+    select count(*) as ndoc, 
+    unnest(regexp_split_to_array(lower(trim(name)), E'[^a-zA-Z]')) as word 
+    from geonames group by 2;
+CREATE INDEX geonames_stats_word_x on geonames_stats (word text_pattern_ops);
+ANALYZE geonames_stats;
+```
+
+Add a function to expose the geonames text search query via [pg_featureserv](https://github.com/CrunchyData/pg_featureserv). Note that the feature server only exposes functions defined in the `postgisftw` schema:
+
+```sql
+-- Make the function schema if needed
+CREATE SCHEMA IF NOT EXISTS postgisftw;
+DROP FUNCTION IF EXISTS postgisftw.geonames_query;
+
+CREATE OR REPLACE FUNCTION postgisftw.geonames_query(
+    search_word text DEFAULT 'beach')
+RETURNS TABLE(name text, kind text, lon float8, lat float8)
+AS $$
+BEGIN
+    RETURN QUERY
+        SELECT 
+            g.name, g.type, 
+            ST_X(g.geom) as lon,
+            ST_Y(g.geom) as lat
+        FROM geonames g
+        WHERE ts @@ plainto_tsquery('english', search_word);
+END;
+$$
+LANGUAGE 'plpgsql'
+PARALLEL SAFE
+STABLE
+STRICT;
+```
+
+
+Add a function to expose the geonames form autofill query via [pg_featureserv](https://github.com/CrunchyData/pg_featureserv):
+
+```sql
+DROP FUNCTION IF EXISTS postgisftw.geonames_stats_query;
+CREATE OR REPLACE FUNCTION postgisftw.geonames_stats_query(
+    search_word text DEFAULT 'bea')
+RETURNS TABLE(value text, ndoc bigint)
+AS $$
+BEGIN
+    RETURN QUERY
+        SELECT g.word as value, g.ndoc
+        FROM geonames_stats g
+        WHERE word LIKE search_word || '%'
+        ORDER BY ndoc DESC
+        LIMIT 15;
+END;
+$$
+LANGUAGE 'plpgsql'
+PARALLEL SAFE
+STABLE
+STRICT;
+```
 
 
 # Address Data Setup
