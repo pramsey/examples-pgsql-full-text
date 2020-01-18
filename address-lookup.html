@@ -33,7 +33,19 @@
   
     $( "#tags" ).autocomplete({
       // Send autocomplete query to this URL end point
-      source: "http://localhost:8080/address-lookup.py",
+      source: function(request, response) {
+        var url = "http://localhost:9000/functions/address_query/items.json?partialstr=";
+        var q = encodeURI(request.term);
+        $.get(url+q, function(data) {
+          response(data.features.map(function(d) {
+            return {
+              "value":d["properties"]["value"],
+              "geom":d["geometry"]
+            }
+          }));
+        });
+      },
+
       minLength: 3,
       // Zoom to selected parcel on list select
       select: function( event, ui ) {
