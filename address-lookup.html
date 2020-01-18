@@ -70,16 +70,39 @@
   } );
   </script>
   <style>
-    #mapid { height: 512px; width: 100%; z-index: 1; }
-    #tags { width: 512px; margin: 5px; }
+    body {
+        padding: 0;
+        margin: 0;
+    }
+    html, body, #mapid {
+        height: 100%;
+        width: 100%;
+    }
+    #mapid { z-index: 1 }
+    #query {
+        background: #ffffffaa;
+        padding: 0.5em 1.5em;
+        position: absolute;
+        left: 4em;
+        top: 1em;
+        z-index: 2;
+    }
+    #tags {
+      font-size: 105%;
+      padding-left: 0.2em;
+      width: 20em;
+    }
+    #query h2 { 
+      margin-top: 0.4em; margin-bottom: 0.4em; 
+    }
   </style>
 </head>
 
 <body>
  
-<div class="ui-widget">
-  <label for="tags">Address: </label>
-  <input id="tags">
+<div id="query">
+  <h2>Address Autocomplete</h2>
+  <p><label for="tags">Address: </label><input id="tags"></p>
 </div>
 
 <div id="mapid"></div>
